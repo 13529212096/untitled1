@@ -1,41 +1,55 @@
-import java.util.Random;
-import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 public class Main {
-    public static void main(String[] args) {
-        System.out.println("欢迎来到猜数字小游戏！");
-        System.out.println("我已经想好了一个1到100之间的数字，你能猜到它吗？");
+    // 判断一个数是否为质数
+    public static boolean isPrime(int n) {
+        if (n < 2) return false;
+        if (n == 2) return true;
+        if (n % 2 == 0) return false;
+        int sqrt = (int) Math.sqrt(n);
+        for (int i = 3; i <= sqrt; i += 2) {
+            if (n % i == 0) return false;
+        }
+        return true;
+    }
 
-        Random random = new Random();
-        int answer = random.nextInt(100) + 1;
-        int guess;
-        int attempts = 0;
+    // 多线程查找质数
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        int start = 1_000_000;
+        int end = 1_010_000;
+        int threadCount = 8;
 
-        Scanner scanner = new Scanner(System.in);
+        System.out.println("多线程并行查找区间 [" + start + ", " + end + "] 内的所有质数...");
+        long begin = System.currentTimeMillis();
 
-        while (true) {
-            System.out.print("请输入你的猜测（1-100）：");
-            if (!scanner.hasNextInt()) {
-                System.out.println("请输入一个有效的数字！");
-                scanner.next(); // 清除无效输入
-                continue;
-            }
-            guess = scanner.nextInt();
-            attempts++;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        List<Future<List<Integer>>> futures = new ArrayList<>();
 
-            if (guess < 1 || guess > 100) {
-                System.out.println("数字范围是1到100，请重新输入！");
-            } else if (guess < answer) {
-                System.out.println("太小了，再试试！");
-            } else if (guess > answer) {
-                System.out.println("太大了，再试试！");
-            } else {
-                System.out.println("恭喜你，猜对了！答案就是 " + answer + "。");
-                System.out.println("你一共猜了 " + attempts + " 次。");
-                break;
-            }
+        int range = (end - start + 1) / threadCount;
+        for (int i = 0; i < threadCount; i++) {
+            int subStart = start + i * range;
+            int subEnd = (i == threadCount - 1) ? end : subStart + range - 1;
+            futures.add(executor.submit(() -> {
+                List<Integer> primes = new ArrayList<>();
+                for (int n = subStart; n <= subEnd; n++) {
+                    if (isPrime(n)) primes.add(n);
+                }
+                return primes;
+            }));
         }
 
-        System.out.println("游戏结束，感谢游玩！");
+        List<Integer> allPrimes = new ArrayList<>();
+        for (Future<List<Integer>> future : futures) {
+            allPrimes.addAll(future.get());
+        }
+        executor.shutdown();
+
+        long endTime = System.currentTimeMillis();
+        System.out.println("查找完成！总质数数量：" + allPrimes.size());
+        System.out.println("部分结果：" + allPrimes.stream().limit(10).collect(Collectors.toList()) + " ...");
+        System.out.println("总耗时：" + (endTime - begin) + " 毫秒");
     }
 }
