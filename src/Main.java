@@ -16,6 +16,28 @@ public class Main {
         return true;
     }
 
+    // 猴子排序（Bogosort）
+    public static void bogosort(int[] arr) {
+        java.util.Random rand = new java.util.Random();
+        while (!isSorted(arr)) {
+            // 随机打乱数组
+            for (int i = arr.length - 1; i > 0; i--) {
+                int j = rand.nextInt(i + 1);
+                int temp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = temp;
+            }
+        }
+    }
+
+    // 判断数组是否有序
+    public static boolean isSorted(int[] arr) {
+        for (int i = 1; i < arr.length; i++) {
+            if (arr[i - 1] > arr[i]) return false;
+        }
+        return true;
+    }
+
     // 多线程查找质数
     public static void main(String[] args) throws InterruptedException, ExecutionException {
         int start = 1_000_000;
